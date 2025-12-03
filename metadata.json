@@ -1,8 +1,5 @@
 {
-  "name": "FéConecta",
-  "description": "FéConecta, focado em gestão de comunidade, moderação de conteúdo e analytics espiritual.",
-  "requestFramePermissions": [
-    "camera",
-    "microphone"
-  ]
+  "name": "FéConecta Admin",
+  "description": "Dashboard administrativo completo para a rede social FéConecta, focado em gestão de comunidade, moderação e insights via IA.",
+  "requestFramePermissions": []
 }

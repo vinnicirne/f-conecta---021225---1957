@@ -1,99 +1,94 @@
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  Users, 
-  ShieldAlert, 
-  FileText, 
-  BarChart2, 
-  Settings, 
-  LogOut,
-  Heart,
-  Wallet,
-  Smartphone,
-  Search,
-  Bell,
-  Book,
-  BookOpen,
-  Coffee
-} from 'lucide-react';
+import { LayoutDashboard, Users, ShieldAlert, BarChart3, Settings, Menu, X, Church } from 'lucide-react';
 
 interface SidebarProps {
   currentView: string;
   setCurrentView: (view: string) => void;
-  isMobileOpen: boolean;
-  setIsMobileOpen: (open: boolean) => void;
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isMobileOpen, setIsMobileOpen }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, isOpen, setIsOpen }) => {
   const menuItems = [
-    { id: 'feed', label: 'Simular App (Feed)', icon: Smartphone },
-    { id: 'search', label: 'Buscar / Explorar', icon: Search },
-    { id: 'notifications', label: 'Notificações', icon: Bell },
-    { id: 'bible', label: 'Bíblia Sagrada', icon: Book },
-    { id: 'devotionals', label: 'Planos e Devocionais', icon: Coffee },
-    { id: 'notes', label: 'Diário Espiritual', icon: BookOpen },
-    { id: 'dashboard', label: 'Visão Geral (Admin)', icon: LayoutDashboard },
-    { id: 'users', label: 'Gestão Usuários', icon: Users },
-    { id: 'content', label: 'Conteúdo', icon: FileText },
+    { id: 'overview', label: 'Visão Geral', icon: LayoutDashboard },
+    { id: 'users', label: 'Usuários', icon: Users },
     { id: 'moderation', label: 'Moderação', icon: ShieldAlert },
-    { id: 'analytics', label: 'Analytics & IA', icon: BarChart2 },
-    { id: 'finance', label: 'Financeiro', icon: Wallet },
+    { id: 'analytics', label: 'Analytics & IA', icon: BarChart3 },
     { id: 'settings', label: 'Configurações', icon: Settings },
   ];
 
   const handleNav = (id: string) => {
     setCurrentView(id);
-    setIsMobileOpen(false);
+    if (window.innerWidth < 1024) {
+      setIsOpen(false);
+    }
   };
 
   return (
     <>
       {/* Mobile Overlay */}
-      {isMobileOpen && (
+      {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-20 md:hidden"
-          onClick={() => setIsMobileOpen(false)}
+          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+          onClick={() => setIsOpen(false)}
         />
       )}
 
-      {/* Sidebar Container */}
+      {/* Sidebar */}
       <aside className={`
-        fixed top-0 left-0 z-30 h-full w-64 bg-white border-r border-slate-200 transform transition-transform duration-300 ease-in-out
-        ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
-        md:translate-x-0 md:static
+        fixed top-0 left-0 z-30 h-full w-64 bg-white border-r border-gray-200 
+        transform transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0 lg:static
       `}>
-        <div className="h-16 flex items-center justify-center border-b border-slate-100">
-            <div className="flex items-center gap-2 text-blue-600 font-bold text-xl">
-                <Heart className="fill-current" size={24} />
-                <span>FéConecta</span>
-            </div>
+        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
+          <div className="flex items-center gap-2 text-brand-600 font-bold text-xl">
+            <Church className="w-6 h-6" />
+            <span>FéConecta</span>
+          </div>
+          <button 
+            onClick={() => setIsOpen(false)} 
+            className="lg:hidden p-1 rounded-md hover:bg-gray-100"
+          >
+            <X className="w-6 h-6 text-gray-500" />
+          </button>
         </div>
 
-        <nav className="p-4 space-y-1 overflow-y-auto h-[calc(100vh-4rem)]">
-          <p className="px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Menu Principal</p>
-          {menuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => handleNav(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors
-                ${currentView === item.id 
-                  ? 'bg-blue-50 text-blue-700' 
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}
-                ${item.id === 'feed' ? 'mb-1 border border-blue-100 bg-gradient-to-r from-blue-50 to-white shadow-sm' : ''}
-              `}
-            >
-              <item.icon size={20} />
-              {item.label}
-            </button>
-          ))}
-
-          <div className="pt-8 mt-8 border-t border-slate-100">
-             <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition-colors">
-              <LogOut size={20} />
-              Sair do Sistema
-            </button>
-          </div>
+        <nav className="p-4 space-y-1">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = currentView === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleNav(item.id)}
+                className={`
+                  w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors
+                  ${isActive 
+                    ? 'bg-brand-50 text-brand-600' 
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}
+                `}
+              >
+                <Icon className={`w-5 h-5 ${isActive ? 'text-brand-600' : 'text-gray-400'}`} />
+                {item.label}
+              </button>
+            );
+          })}
         </nav>
+
+        <div className="absolute bottom-0 w-full p-4 border-t border-gray-200">
+          <div className="flex items-center gap-3 p-2 rounded-lg bg-gray-50">
+            <img 
+              src="https://picsum.photos/seed/admin/40/40" 
+              alt="Admin" 
+              className="w-8 h-8 rounded-full"
+            />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">Admin Master</p>
+              <p className="text-xs text-gray-500 truncate">admin@feconecta.com</p>
+            </div>
+          </div>
+        </div>
       </aside>
     </>
   );

@@ -1,33 +1,62 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
-export const generateAIInsights = async (contextData: string): Promise<string> => {
-  // Check for API key (assumed to be in process.env.API_KEY per guidelines)
-  if (!process.env.API_KEY) {
-    return "Simulação: A IA prevê um crescimento de 15% no engajamento baseado nos grupos de oração recém-criados. Recomenda-se destacar testemunhos na próxima semana. (Configure API_KEY no arquivo .env ou na Vercel para insights reais).";
-  }
+// Initialize the GoogleGenAI client with the API key from the environment variable.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+export const analyzeSentiment = async (text: string): Promise<{ sentiment: string; score: number; suggestion: string }> => {
+  if (!process.env.API_KEY) return { sentiment: 'N/A', score: 0, suggestion: 'API Key Missing' };
 
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const model = 'gemini-2.5-flash';
+    const prompt = `Analise o seguinte texto de uma rede social cristã. Classifique o sentimento (Positivo, Negativo, Neutro), dê uma nota de 0 a 10 (0 muito negativo, 10 muito positivo) e sugira uma ação de moderação se necessário.
+    
+    Texto: "${text}"`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `Você é um analista sênior de dados para uma rede social cristã chamada "FéConecta". 
-      O objetivo da rede é fomentar fé, comunidade e positividade.
-      Analise os seguintes dados brutos do painel e forneça um resumo executivo de 3 pontos com:
-      1. Uma tendência observada.
-      2. Uma possível risco (ex: churn, toxicidade).
-      3. Uma recomendação de ação para os administradores.
-
-      Dados Atuais:
-      ${contextData}`,
+      model,
+      contents: prompt,
       config: {
-        temperature: 0.7,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            sentiment: { type: Type.STRING },
+            score: { type: Type.NUMBER },
+            suggestion: { type: Type.STRING }
+          }
+        }
       }
+    });
+
+    const jsonText = response.text || "{}";
+    return JSON.parse(jsonText);
+  } catch (error) {
+    console.error("Gemini Error:", error);
+    return { sentiment: 'Error', score: 0, suggestion: 'Manual review required' };
+  }
+};
+
+export const generateCommunityInsights = async (metrics: any): Promise<string> => {
+  if (!process.env.API_KEY) return "API Key ausente. Configure a chave para receber insights de IA.";
+
+  try {
+    const model = 'gemini-2.5-flash';
+    const prompt = `Você é um consultor especialista em comunidades online e fé.
+    Com base nas seguintes métricas da rede social "FéConecta", forneça um resumo executivo de 3 parágrafos.
+    1. Análise de crescimento.
+    2. Saúde do engajamento.
+    3. Recomendações para a liderança.
+
+    Dados: ${JSON.stringify(metrics)}`;
+
+    const response = await ai.models.generateContent({
+      model,
+      contents: prompt,
     });
 
     return response.text || "Não foi possível gerar insights no momento.";
   } catch (error) {
-    console.error("Error calling Gemini:", error);
-    return "Erro ao conectar com a inteligência artificial. Tente novamente mais tarde.";
+    console.error("Gemini Error:", error);
+    return "Erro ao conectar com a IA.";
   }
 };
