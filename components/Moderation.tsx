@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { MOCK_REPORTS } from '../constants';
-import { ReportStatus, ReportType } from '../types';
+import { ReportStatus } from '../types';
 import { AlertCircle, CheckCircle, XCircle, BrainCircuit, Loader2 } from 'lucide-react';
 import { analyzeSentiment } from '../services/geminiService';
 

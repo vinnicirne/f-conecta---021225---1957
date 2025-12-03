@@ -18,7 +18,21 @@ export interface User {
   status: UserStatus;
   joinedAt: string;
   avatarUrl: string;
+  avatar?: string; // Added for compatibility with legacy components
   reportCount: number;
+}
+
+export interface Post {
+  id: string;
+  userId: string;
+  content: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  likes: number;
+  comments: number;
+  shares?: number;
+  createdAt: string;
+  author?: User;
 }
 
 export enum ReportStatus {

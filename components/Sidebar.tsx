@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Users, ShieldAlert, BarChart3, Settings, Menu, X, Church } from 'lucide-react';
+import { LayoutDashboard, Users, ShieldAlert, BarChart3, Settings, X, Church } from 'lucide-react';
 
 interface SidebarProps {
   currentView: string;

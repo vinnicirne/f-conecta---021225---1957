@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { MOCK_USERS } from '../constants';
-import { User, UserRole, UserStatus } from '../types';
+import { UserRole, UserStatus } from '../types';
 import { Search, MoreHorizontal, Filter, ShieldCheck, Ban, UserCheck } from 'lucide-react';
 
 export const UsersList: React.FC = () => {
