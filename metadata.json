@@ -1,5 +1,7 @@
 {
-  "name": "FéConecta Admin",
-  "description": "Dashboard administrativo completo para a rede social FéConecta, focado em gestão de comunidade, moderação e insights via IA.",
-  "requestFramePermissions": []
+  "name": "Gemini Nexus",
+  "description": "A high-performance interface for Gemini 2.5 Flash and the Real-time Live API, featuring multimodal chat and low-latency voice interaction.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
 }
