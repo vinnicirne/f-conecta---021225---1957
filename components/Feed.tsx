@@ -1,11 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { MessageOfTheDay } from './MessageOfTheDay';
 import { Post } from './Post';
+import { CreatePost } from './CreatePost';
+
+const CURRENT_USER = {
+  name: 'Visitante',
+  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Visitante',
+  role: 'Membro',
+  id: 'me'
+};
 
 const MOCK_POSTS = [
   {
     id: 1,
     user: {
+      id: 'u1',
       name: 'Pr. Antônio Carlos',
       avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Pastor',
       role: 'Pastor Sênior'
@@ -20,6 +29,7 @@ const MOCK_POSTS = [
   {
     id: 2,
     user: {
+      id: 'u2',
       name: 'Grupo de Jovens - Águias',
       avatar: 'https://api.dicebear.com/7.x/identicon/svg?seed=Jovens',
       role: 'Grupo Oficial'
@@ -33,6 +43,7 @@ const MOCK_POSTS = [
   {
     id: 3,
     user: {
+      id: 'u3',
       name: 'Mariana Souza',
       avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mariana',
     },
@@ -46,12 +57,15 @@ const MOCK_POSTS = [
 
 export const Feed: React.FC = () => {
   const [posts, setPosts] = useState(MOCK_POSTS);
-  const [loading, setLoading] = useState(false);
 
-  // Simulação de Infinite Scroll
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    // Em um app real, detectariamos o fim do scroll e chamariamos a API
-    // Aqui vamos deixar estático para demonstração
+  const handleNewPost = (postData: any) => {
+    setPosts([postData, ...posts]);
+  };
+
+  const handleDeletePost = (postId: number) => {
+    if (window.confirm('Tem certeza que deseja excluir esta publicação?')) {
+      setPosts(posts.filter(p => p.id !== postId));
+    }
   };
 
   return (
@@ -61,9 +75,16 @@ export const Feed: React.FC = () => {
         <MessageOfTheDay />
       </div>
 
+      <CreatePost onPost={handleNewPost} currentUser={CURRENT_USER} />
+
       <div className="flex flex-col gap-4 px-4 pb-4">
         {posts.map(post => (
-          <Post key={post.id} data={post} />
+          <Post 
+            key={post.id} 
+            data={post} 
+            isOwner={post.user.id === CURRENT_USER.id}
+            onDelete={() => handleDeletePost(post.id)}
+          />
         ))}
         
         {/* Loading / End of Feed */}
