@@ -50,8 +50,13 @@ export const LiveInterface: React.FC = () => {
     });
     activeSourcesRef.current.clear();
 
-    // Ideally close session here, but SDK doesn't expose easy close method on promise directly
-    // relying on component unmount behavior mostly.
+    // Close the session
+    if (sessionPromiseRef.current) {
+      sessionPromiseRef.current.then(session => {
+        session.close();
+      }).catch(console.error);
+      sessionPromiseRef.current = null;
+    }
     
     setIsConnected(false);
     setVolume(0);
@@ -119,6 +124,7 @@ export const LiveInterface: React.FC = () => {
 
               const pcmBlob = createBlob(inputData);
               
+              // Use the ref to ensure we use the active session promise
               sessionPromiseRef.current?.then(session => {
                 session.sendRealtimeInput({ media: pcmBlob });
               });
