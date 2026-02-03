@@ -58,7 +58,13 @@ const PostCard: React.FC<PostCardProps> = ({ post, onUpdate, onDelete, onRepost,
       {/* Post Header */}
       <div className="p-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <img src={post.authorAvatar} alt={post.author} className="w-10 h-10 rounded-full border border-gray-100" />
+          <img
+            src={post.authorAvatar}
+            alt={post.author}
+            className="w-10 h-10 rounded-full border border-gray-100 bg-gray-50"
+            loading="lazy"
+            decoding="async"
+          />
           <div>
             <h3 className="font-bold text-gray-900">{post.author}</h3>
             <p className="text-xs text-gray-400">{formatRelativeTime(post.createdAt)}</p>
@@ -128,7 +134,15 @@ const PostCard: React.FC<PostCardProps> = ({ post, onUpdate, onDelete, onRepost,
           <div className="space-y-3">
             <p className="text-gray-800 leading-relaxed">{parsePostContent(post.content)}</p>
             {post.mediaUrl && post.mediaType === 'image' && (
-              <img src={post.mediaUrl} className="w-full rounded-xl object-cover max-h-96" alt="Post content" />
+              <div className="relative min-h-[200px] bg-gray-50 rounded-xl overflow-hidden">
+                <img
+                  src={post.mediaUrl}
+                  className="w-full rounded-xl object-cover max-h-96"
+                  alt="Post content"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
             )}
             {post.mediaUrl && post.mediaType === 'video' && (
               <video src={post.mediaUrl} controls className="w-full rounded-xl bg-black aspect-video" />
