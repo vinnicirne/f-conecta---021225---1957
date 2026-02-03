@@ -1,100 +1,102 @@
-import React, { useState } from 'react';
-import { MessageOfTheDay } from './MessageOfTheDay';
-import { Post } from './Post';
-import { CreatePost } from './CreatePost';
+import React, { useRef, useEffect } from 'react';
+import { useFeed } from '../hooks/useFeed';
+import PostCard from './PostCard';
+import LoadingSpinner from './LoadingSpinner';
+import { usePosts } from '../hooks/usePosts';
+import { useRepost } from '../hooks/useRepost';
 
-const CURRENT_USER = {
-  name: 'Visitante',
-  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Visitante',
-  role: 'Membro',
-  id: 'me'
-};
+const Feed: React.FC = () => {
+    const { posts, loading, hasMore, loadMore, refreshFeed } = useFeed();
+    const { updatePost, deletePost, toggleLike } = usePosts();
+    const { repostPost } = useRepost();
+    const loadMoreRef = useRef<HTMLDivElement>(null);
 
-const MOCK_POSTS = [
-  {
-    id: 1,
-    user: {
-      id: 'u1',
-      name: 'Pr. Antônio Carlos',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Pastor',
-      role: 'Pastor Sênior'
-    },
-    time: '2h atrás',
-    content: 'Culto abençoado de hoje pela manhã! Que a paz de Cristo esteja com todos vocês nesta semana que se inicia. Não esqueçam de ler o Salmo 23 hoje.',
-    image: 'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?q=80&w=1000&auto=format&fit=crop',
-    likes: 124,
-    comments: 18,
-    shares: 5
-  },
-  {
-    id: 2,
-    user: {
-      id: 'u2',
-      name: 'Grupo de Jovens - Águias',
-      avatar: 'https://api.dicebear.com/7.x/identicon/svg?seed=Jovens',
-      role: 'Grupo Oficial'
-    },
-    time: '4h atrás',
-    content: 'Galera, sábado tem vigília! Tragam seus amigos. Vai ser power! 🔥🙏',
-    likes: 56,
-    comments: 42,
-    shares: 12
-  },
-  {
-    id: 3,
-    user: {
-      id: 'u3',
-      name: 'Mariana Souza',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mariana',
-    },
-    time: '6h atrás',
-    content: 'Agradecida por mais um dia. "O Senhor é a minha força e o meu escudo; nele o meu coração confia, e dele recebo ajuda." Salmos 28:7',
-    likes: 89,
-    comments: 7,
-    shares: 2
-  }
-];
+    // Infinite scroll usando IntersectionObserver
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMore && !loading) {
+                    loadMore();
+                }
+            },
+            { threshold: 1.0 }
+        );
 
-export const Feed: React.FC = () => {
-  const [posts, setPosts] = useState(MOCK_POSTS);
+        if (loadMoreRef.current) {
+            observer.observe(loadMoreRef.current);
+        }
 
-  const handleNewPost = (postData: any) => {
-    setPosts([postData, ...posts]);
-  };
+        return () => {
+            if (loadMoreRef.current) {
+                observer.unobserve(loadMoreRef.current);
+            }
+        };
+    }, [hasMore, loading, loadMore]);
 
-  const handleDeletePost = (postId: number) => {
-    if (window.confirm('Tem certeza que deseja excluir esta publicação?')) {
-      setPosts(posts.filter(p => p.id !== postId));
+    const handleRepost = async (post: any) => {
+        await repostPost(post);
+        refreshFeed(); // Refresh feed after repost
+    };
+
+    if (loading && posts.length === 0) {
+        return (
+            <div className="flex justify-center py-12">
+                <LoadingSpinner size="lg" />
+            </div>
+        );
     }
-  };
 
-  return (
-    <div className="flex flex-col gap-2 pb-4 bg-gray-50 min-h-full">
-      {/* Componente Hero Fixo no Topo do Feed */}
-      <div className="px-4 pt-4 pb-2">
-        <MessageOfTheDay />
-      </div>
+    if (posts.length === 0) {
+        return (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+                <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Seu feed está vazio
+                </h3>
+                <p className="text-gray-600 mb-4">
+                    Siga outros usuários para ver suas publicações aqui!
+                </p>
+                <button
+                    onClick={refreshFeed}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition-colors"
+                >
+                    Atualizar Feed
+                </button>
+            </div>
+        );
+    }
 
-      <CreatePost onPost={handleNewPost} currentUser={CURRENT_USER} />
+    return (
+        <div className="space-y-6">
+            {/* Posts */}
+            {posts.map((post) => (
+                <PostCard
+                    key={post.id}
+                    post={post}
+                    onUpdate={updatePost}
+                    onDelete={deletePost}
+                    onRepost={handleRepost}
+                    onLike={() => toggleLike(post.id)}
+                />
+            ))}
 
-      <div className="flex flex-col gap-4 px-4 pb-4">
-        {posts.map(post => (
-          <Post 
-            key={post.id} 
-            data={post} 
-            isOwner={post.user.id === CURRENT_USER.id}
-            onDelete={() => handleDeletePost(post.id)}
-          />
-        ))}
-        
-        {/* Loading / End of Feed */}
-        <div className="py-6 text-center">
-          <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold">
-            Isso é tudo por enquanto
-          </p>
-          <div className="w-1 h-12 bg-gray-200 mx-auto mt-4 rounded-full"></div>
+            {/* Loading indicator para infinite scroll */}
+            <div ref={loadMoreRef} className="py-8">
+                {loading && (
+                    <div className="flex justify-center">
+                        <LoadingSpinner size="md" />
+                    </div>
+                )}
+                {!hasMore && posts.length > 0 && (
+                    <p className="text-center text-gray-500 text-sm">
+                        Você chegou ao fim do feed
+                    </p>
+                )}
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 };
+
+export default Feed;

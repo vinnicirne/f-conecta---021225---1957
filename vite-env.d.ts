@@ -1,7 +1,10 @@
-// Type definitions for Vite environment
-declare namespace NodeJS {
-  interface ProcessEnv {
-    [key: string]: string | undefined;
-    API_KEY?: string;
-  }
+/// <reference types="vite/client" />
+
+interface ImportMetaEnv {
+    readonly VITE_SUPABASE_URL: string
+    readonly VITE_SUPABASE_ANON_KEY: string
+}
+
+interface ImportMeta {
+    readonly env: ImportMetaEnv
 }

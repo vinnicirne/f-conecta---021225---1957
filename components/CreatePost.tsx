@@ -1,241 +1,205 @@
+
+
 import React, { useState, useRef } from 'react';
-import { Image as ImageIcon, Camera, Mic, Type, X, Bold, Italic, Underline, Highlighter, Palette, Send, Smile } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { Post, PostTab, PostStyles, FontOption } from '../types';
+import RichTextEditor from './RichTextEditor';
+import MediaCapture from './MediaCapture';
+import AudioRecorder from './AudioRecorder';
 
 interface CreatePostProps {
-  onPost: (postData: any) => void;
-  currentUser: any;
+  onPost: (post: Post) => void;
 }
 
-const FONTS = [
-  { name: 'Padrão', class: 'font-sans' },
-  { name: 'Serifa', class: 'font-serif' },
-  { name: 'Mono', class: 'font-mono' },
-  { name: 'Elegante', class: 'font-[cursive]' },
-  { name: 'Moderna', class: 'font-[system-ui]' }
-];
-
-const BACKGROUNDS = [
-  'bg-white',
-  'bg-gradient-to-r from-red-50 to-orange-50', // Warm
-  'bg-gradient-to-r from-blue-50 to-indigo-50', // Cool
-  'bg-gradient-to-r from-green-50 to-emerald-50', // Nature
-  'bg-gray-900 text-white', // Dark
-];
-
-const TEXT_COLORS = ['text-gray-900', 'text-blue-600', 'text-purple-600', 'text-red-600', 'text-green-600'];
-
-export const CreatePost: React.FC<CreatePostProps> = ({ onPost, currentUser }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+const CreatePost: React.FC<CreatePostProps> = ({ onPost }) => {
+  const [activeTab, setActiveTab] = useState<PostTab | null>(null);
   const [content, setContent] = useState('');
-  const [media, setMedia] = useState<string | null>(null);
-  const [activeFont, setActiveFont] = useState(0);
-  const [activeBg, setActiveBg] = useState(0);
-  const [activeColor, setActiveColor] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
-  
+  const [styles, setStyles] = useState<PostStyles>({
+    bold: false,
+    italic: false,
+    underline: false,
+    highlight: false,
+    font: 'sans',
+    textColor: '#1a1a1a',
+    backgroundColor: '#ffffff'
+  });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const editorRef = useRef<HTMLDivElement>(null);
 
-  const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setMedia(reader.result as string);
-        setIsExpanded(true);
-      };
-      reader.readAsDataURL(file);
-    }
+  const reset = () => {
+    setActiveTab(null);
+    setContent('');
+    setStyles({
+      bold: false,
+      italic: false,
+      underline: false,
+      highlight: false,
+      font: 'sans',
+      textColor: '#1a1a1a',
+      backgroundColor: '#ffffff'
+    });
   };
 
-  const executeCommand = (command: string) => {
-    document.execCommand(command, false);
-    editorRef.current?.focus();
-  };
+  const handlePostSubmit = (mediaData?: { url: string; type: 'image' | 'video' | 'audio' }) => {
+    if (!content && !mediaData) return;
 
-  const handlePost = () => {
-    if (!editorRef.current?.innerText.trim() && !media) return;
-
-    const newPost = {
-      id: Date.now(),
-      user: currentUser,
-      time: 'Agora',
-      content: editorRef.current?.innerHTML || '',
-      image: media,
+    const newPost: Post = {
+      id: Math.random().toString(36).substr(2, 9),
+      author: 'Você',
+      authorAvatar: 'https://picsum.photos/id/100/100/100',
+      content,
+      type: mediaData?.type === 'audio' ? 'audio' : (mediaData ? 'media' : 'text'),
+      mediaUrl: mediaData?.type !== 'audio' ? mediaData?.url : undefined,
+      mediaType: mediaData?.type === 'image' || mediaData?.type === 'video' ? mediaData.type : undefined,
+      audioUrl: mediaData?.type === 'audio' ? mediaData.url : undefined,
+      styles: activeTab === PostTab.TEXT ? styles : undefined,
       likes: 0,
-      comments: 0,
-      shares: 0,
-      style: {
-        font: FONTS[activeFont].class,
-        background: BACKGROUNDS[activeBg],
-        color: activeBg === 4 ? 'text-white' : TEXT_COLORS[activeColor] // Force white text on dark bg
-      }
+      hasLiked: false,
+      comments: [],
+      createdAt: Date.now(),
+      repostCount: 0
     };
 
     onPost(newPost);
-    
-    // Reset
-    if (editorRef.current) editorRef.current.innerHTML = '';
-    setMedia(null);
-    setIsExpanded(false);
-    setActiveBg(0);
-    setActiveFont(0);
-    setActiveColor(0);
+    reset();
+  };
+
+  const handleGalleryClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Mostrar loading
+    const loadingToast = toast.loading('Enviando arquivo...');
+
+    try {
+      // Upload para Supabase Storage
+      const { uploadMedia } = await import('../lib/mediaUpload');
+      const publicUrl = await uploadMedia(file);
+
+      toast.dismiss(loadingToast);
+
+      if (!publicUrl) {
+        toast.error('Erro ao enviar arquivo');
+        return;
+      }
+
+      // Determinar tipo de mídia
+      const type = file.type.startsWith('video') ? 'video' : 'image';
+
+      // Criar post com URL permanente
+      handlePostSubmit({ url: publicUrl, type });
+      toast.success('Arquivo enviado!');
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      toast.error('Erro ao processar arquivo');
+      console.error('Erro no upload:', error);
+    }
   };
 
   return (
-    <div className="bg-white border-b border-gray-200 shadow-sm mb-2">
-      {!isExpanded ? (
-        <div className="p-4">
-          <div className="flex gap-3 mb-4">
-            <img src={currentUser.avatar} alt="Me" className="w-10 h-10 rounded-full" />
-            <div 
-              onClick={() => setIsExpanded(true)}
-              className="flex-1 bg-gray-100 rounded-full px-4 py-2.5 text-gray-500 cursor-text hover:bg-gray-200 transition-colors"
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300">
+      <div className="p-4 flex items-start space-x-3">
+        <img
+          src="https://picsum.photos/id/100/100/100"
+          alt="Avatar"
+          className="w-10 h-10 rounded-full border border-gray-100"
+        />
+        <div className="flex-1">
+          {!activeTab ? (
+            <button
+              onClick={() => setActiveTab(PostTab.TEXT)}
+              className="w-full text-left py-2 px-4 bg-gray-50 hover:bg-gray-100 rounded-full text-gray-500 transition-colors"
             >
               No que você está pensando?
+            </button>
+          ) : (
+            <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+              {activeTab === PostTab.TEXT && (
+                <RichTextEditor
+                  content={content}
+                  setContent={setContent}
+                  styles={styles}
+                  setStyles={setStyles}
+                  onCancel={reset}
+                  onPost={() => handlePostSubmit()}
+                />
+              )}
+              {activeTab === PostTab.CAMERA && (
+                <MediaCapture
+                  onCapture={(url, type) => handlePostSubmit({ url, type })}
+                  onCancel={reset}
+                />
+              )}
+              {activeTab === PostTab.AUDIO && (
+                <AudioRecorder
+                  onComplete={(url) => handlePostSubmit({ url, type: 'audio' })}
+                  onCancel={reset}
+                />
+              )}
             </div>
-          </div>
-          <div className="flex justify-between px-2">
-            <button onClick={() => setIsExpanded(true)} className="flex items-center gap-2 text-gray-600 hover:bg-gray-50 px-3 py-2 rounded-lg transition-colors">
-              <Type size={20} className="text-indigo-500" />
-              <span className="text-xs font-medium">Texto</span>
-            </button>
-            <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 text-gray-600 hover:bg-gray-50 px-3 py-2 rounded-lg transition-colors">
-              <ImageIcon size={20} className="text-green-500" />
-              <span className="text-xs font-medium">Galeria</span>
-            </button>
-            <button onClick={() => cameraInputRef.current?.click()} className="flex items-center gap-2 text-gray-600 hover:bg-gray-50 px-3 py-2 rounded-lg transition-colors">
-              <Camera size={20} className="text-blue-500" />
-              <span className="text-xs font-medium">Câmera</span>
-            </button>
-            <button onClick={() => setIsExpanded(true)} className="flex items-center gap-2 text-gray-600 hover:bg-gray-50 px-3 py-2 rounded-lg transition-colors">
-              <Mic size={20} className="text-red-500" />
-              <span className="text-xs font-medium">Áudio</span>
-            </button>
-          </div>
+          )}
         </div>
-      ) : (
-        <div className={`flex flex-col animate-in slide-in-from-top-2 duration-200 ${BACKGROUNDS[activeBg]} transition-colors duration-300 min-h-[300px]`}>
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-black/5">
-            <div className="flex items-center gap-2">
-              <button onClick={() => setIsExpanded(false)} className="p-2 hover:bg-black/5 rounded-full">
-                <X size={24} className={activeBg === 4 ? 'text-white' : 'text-gray-600'} />
-              </button>
-              <span className={`font-semibold ${activeBg === 4 ? 'text-white' : 'text-gray-900'}`}>Criar Publicação</span>
-            </div>
-            <button 
-              onClick={handlePost}
-              className="bg-indigo-600 text-white px-6 py-2 rounded-full font-medium hover:bg-indigo-700 transition-colors flex items-center gap-2"
+      </div>
+
+      {!activeTab && (
+        <div className="px-4 pb-4 flex items-center justify-between border-t border-gray-50 pt-3">
+          <div className="flex space-x-1 sm:space-x-4">
+            <button
+              onClick={() => setActiveTab(PostTab.TEXT)}
+              className="flex items-center space-x-2 px-3 py-1.5 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors text-sm font-medium"
             >
-              Publicar <Send size={16} />
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              <span>Texto</span>
             </button>
-          </div>
 
-          {/* Editor Area */}
-          <div className="flex-1 p-4">
-            <div 
-              ref={editorRef}
-              contentEditable
-              className={`w-full min-h-[150px] outline-none text-lg ${FONTS[activeFont].class} ${activeBg === 4 ? 'text-white' : TEXT_COLORS[activeColor]} placeholder:text-gray-400`}
-              data-placeholder="Compartilhe sua fé..."
-            />
-            
-            {media && (
-              <div className="relative mt-4 rounded-xl overflow-hidden shadow-sm group">
-                <img src={media} alt="Upload" className="max-h-80 w-full object-cover" />
-                <button 
-                  onClick={() => setMedia(null)}
-                  className="absolute top-2 right-2 bg-black/60 text-white p-1.5 rounded-full hover:bg-black/80"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            )}
-            
-            {/* Recording UI Placeholder */}
-            {isRecording && (
-               <div className="mt-4 flex items-center gap-3 p-3 bg-red-50 text-red-600 rounded-lg animate-pulse">
-                  <div className="w-3 h-3 bg-red-600 rounded-full"></div>
-                  <span className="text-sm font-medium">Gravando áudio... 00:04</span>
-                  <button onClick={() => setIsRecording(false)} className="ml-auto text-xs underline">Cancelar</button>
-               </div>
-            )}
-          </div>
+            <button
+              onClick={handleGalleryClick}
+              className="flex items-center space-x-2 px-3 py-1.5 hover:bg-green-50 text-green-600 rounded-lg transition-colors text-sm font-medium"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>Galeria</span>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept="image/*,video/*"
+                onChange={handleFileChange}
+              />
+            </button>
 
-          {/* Toolbar */}
-          <div className="p-3 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-10">
-            {/* Formatting */}
-            <div className="flex items-center justify-between mb-3 overflow-x-auto pb-2 no-scrollbar gap-4">
-              <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
-                <ToolbarBtn onClick={() => executeCommand('bold')} icon={<Bold size={18} />} />
-                <ToolbarBtn onClick={() => executeCommand('italic')} icon={<Italic size={18} />} />
-                <ToolbarBtn onClick={() => executeCommand('underline')} icon={<Underline size={18} />} />
-              </div>
-              
-              <div className="flex items-center gap-2">
-                {TEXT_COLORS.map((c, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setActiveColor(i)}
-                    className={`w-6 h-6 rounded-full border border-gray-200 ${c.replace('text', 'bg')} ${activeColor === i ? 'ring-2 ring-indigo-500 ring-offset-2' : ''}`}
-                  />
-                ))}
-              </div>
-            </div>
+            <button
+              onClick={() => setActiveTab(PostTab.CAMERA)}
+              className="flex items-center space-x-2 px-3 py-1.5 hover:bg-orange-50 text-orange-600 rounded-lg transition-colors text-sm font-medium"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span>Câmera</span>
+            </button>
 
-            {/* Bottom Tools */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex -space-x-1">
-                  {BACKGROUNDS.map((bg, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setActiveBg(i)}
-                      className={`w-8 h-8 rounded-full border-2 border-white shadow-sm ${bg} ${activeBg === i ? 'transform -translate-y-1 z-10' : 'opacity-70'}`}
-                    />
-                  ))}
-                </div>
-                <div className="h-6 w-px bg-gray-300 mx-1"></div>
-                <button onClick={() => setActiveFont((prev) => (prev + 1) % FONTS.length)} className="text-xs font-bold px-2 py-1 bg-gray-100 rounded text-gray-600 hover:bg-gray-200 uppercase w-16 text-center">
-                  {FONTS[activeFont].name}
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                 <button 
-                  onMouseDown={() => setIsRecording(true)}
-                  onMouseUp={() => setIsRecording(false)}
-                  className={`p-2 rounded-full ${isRecording ? 'bg-red-100 text-red-600' : 'text-gray-500 hover:bg-gray-100'}`}
-                >
-                    <Mic size={24} />
-                 </button>
-                 <button onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full">
-                    <ImageIcon size={24} />
-                 </button>
-                 <button onClick={() => cameraInputRef.current?.click()} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full">
-                    <Camera size={24} />
-                 </button>
-              </div>
-            </div>
+            <button
+              onClick={() => setActiveTab(PostTab.AUDIO)}
+              className="flex items-center space-x-2 px-3 py-1.5 hover:bg-purple-50 text-purple-600 rounded-lg transition-colors text-sm font-medium"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              </svg>
+              <span>Áudio</span>
+            </button>
           </div>
         </div>
       )}
-
-      {/* Hidden Inputs */}
-      <input type="file" ref={fileInputRef} className="hidden" accept="image/*,video/*" onChange={handleMediaSelect} />
-      <input type="file" ref={cameraInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleMediaSelect} />
     </div>
   );
 };
 
-const ToolbarBtn = ({ onClick, icon }: any) => (
-  <button 
-    onClick={onClick}
-    className="p-1.5 text-gray-600 hover:text-indigo-600 hover:bg-white rounded-md transition-all"
-  >
-    {icon}
-  </button>
-);
+export default CreatePost;

@@ -1,98 +1,159 @@
+
+
 import React, { useState } from 'react';
-import { Home, BookOpen, Users, User, Bell, Menu } from 'lucide-react';
-import { Feed } from './components/Feed';
+import { Toaster } from 'react-hot-toast';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Post } from './types';
+import Header from './components/Header';
+import CreatePost from './components/CreatePost';
+import Feed from './components/Feed';
+import Navigation from './components/Navigation';
+import MessageOfTheDay from './components/MessageOfTheDay';
+import LoadingSpinner from './components/LoadingSpinner';
+import BiblePage from './pages/BiblePage';
+import DevotionalsPage from './pages/DevotionalsPage';
+import NotesPage from './pages/NotesPage';
+import ProfilePage from './pages/ProfilePage';
+import SearchPage from './pages/SearchPage';
+import HashtagPage from './pages/HashtagPage';
+import LoginPage from './pages/LoginPage';
+import { usePosts } from './hooks/usePosts';
 
-export enum View {
-  HOME = 'home',
-  BIBLE = 'bible',
-  COMMUNITY = 'community',
-  PROFILE = 'profile',
-  MODERATION = 'moderation',
-}
+const AppContent: React.FC = () => {
+  const [currentPage, setCurrentPage] = useState('feed');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedHashtag, setSelectedHashtag] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const { user, loading: authLoading } = useAuth();
+  const { createPost } = usePosts();
 
-export default function App() {
-  const [activeTab, setActiveTab] = useState<View>(View.HOME);
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <LoadingSpinner size="lg" />
+          <p className="mt-4 text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login if not authenticated
+  if (!user) {
+    return <LoginPage />;
+  }
+
+  const handleAddPost = async (newPost: Post) => {
+    await createPost(newPost.content, newPost.type, newPost.mediaUrl);
+  };
+
+
+
+  const handleNavigate = (page: string) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleNavigateToSearch = (query: string) => {
+    setSearchQuery(query);
+    setCurrentPage('search');
+  };
+
+  const handleNavigateToHashtag = (hashtag: string) => {
+    setSelectedHashtag(hashtag);
+    setCurrentPage('hashtag');
+  };
+
+  const handleNavigateToProfile = (userId: string) => {
+    setSelectedUserId(userId);
+    setCurrentPage('profile');
+  };
+
+  const renderFeedPage = () => (
+    <main className="max-w-2xl mx-auto px-4 pt-20 pb-24">
+      <MessageOfTheDay />
+      <CreatePost onPost={handleAddPost} />
+      <div className="mt-6">
+        <Feed />
+      </div>
+    </main>
+  );
+
+  const renderPage = () => {
+    switch (currentPage) {
+      case 'feed':
+        return renderFeedPage();
+      case 'bible':
+        return <BiblePage />;
+      case 'devotionals':
+        return <DevotionalsPage />;
+      case 'notes':
+        return <NotesPage />;
+      case 'profile':
+        return <ProfilePage userId={selectedUserId} />;
+      case 'search':
+        return (
+          <SearchPage
+            initialQuery={searchQuery}
+            onNavigateToProfile={handleNavigateToProfile}
+            onNavigateToHashtag={handleNavigateToHashtag}
+          />
+        );
+      case 'hashtag':
+        return (
+          <HashtagPage
+            hashtag={selectedHashtag}
+            onBack={() => setCurrentPage('search')}
+          />
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 max-w-md mx-auto shadow-2xl overflow-hidden relative font-sans text-slate-900">
-      
-      {/* Header Mobile */}
-      <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 z-20 shrink-0 sticky top-0">
-        <div className="flex items-center gap-2">
-          <button className="p-2 -ml-2 text-gray-600 hover:bg-gray-50 rounded-full">
-            <Menu size={24} />
-          </button>
-          <span className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            FéConecta
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="p-2 text-gray-600 hover:bg-gray-50 rounded-full relative">
-            <Bell size={24} />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
-          </button>
-          <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-700 font-bold text-sm">
-            AM
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto scroll-smooth overscroll-contain pb-20 no-scrollbar">
-        {activeTab === View.HOME && <Feed />}
-        
-        {activeTab !== View.HOME && (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400 p-8 text-center">
-            <BookOpen size={48} className="mb-4 opacity-20" />
-            <h3 className="text-lg font-medium text-gray-600">Em Breve</h3>
-            <p className="text-sm">Estamos construindo esta área de {activeTab}.</p>
-          </div>
-        )}
-      </main>
-
-      {/* Bottom Navigation */}
-      <nav className="h-16 bg-white border-t border-gray-200 flex items-center justify-around px-2 absolute bottom-0 w-full z-30 pb-safe">
-        <NavButton 
-          active={activeTab === View.HOME} 
-          onClick={() => setActiveTab(View.HOME)} 
-          icon={<Home size={24} />} 
-          label="Início" 
-        />
-        <NavButton 
-          active={activeTab === View.BIBLE} 
-          onClick={() => setActiveTab(View.BIBLE)} 
-          icon={<BookOpen size={24} />} 
-          label="Bíblia" 
-        />
-        <NavButton 
-          active={activeTab === View.COMMUNITY} 
-          onClick={() => setActiveTab(View.COMMUNITY)} 
-          icon={<Users size={24} />} 
-          label="Grupos" 
-        />
-        <NavButton 
-          active={activeTab === View.PROFILE} 
-          onClick={() => setActiveTab(View.PROFILE)} 
-          icon={<User size={24} />} 
-          label="Perfil" 
-        />
-      </nav>
+    <div className="min-h-screen bg-gray-50">
+      <Header
+        onRefresh={() => { }}
+        onNavigateToSearch={handleNavigateToSearch}
+        onNavigateToProfile={handleNavigateToProfile}
+        onNavigateToHashtag={handleNavigateToHashtag}
+      />
+      {renderPage()}
+      <Navigation currentPage={currentPage} onNavigate={handleNavigate} />
     </div>
   );
-}
+};
 
-const NavButton = ({ active, onClick, icon, label }: any) => (
-  <button 
-    onClick={onClick}
-    className={`flex flex-col items-center justify-center w-full h-full transition-colors ${
-      active ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'
-    }`}
-  >
-    <div className={`transform transition-transform ${active ? '-translate-y-1' : ''}`}>
-      {icon}
-    </div>
-    <span className={`text-[10px] font-medium mt-1 ${active ? 'opacity-100' : 'opacity-0'}`}>
-      {label}
-    </span>
-  </button>
-);
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+      <AppContent />
+    </AuthProvider>
+  );
+};
+
+export default App;

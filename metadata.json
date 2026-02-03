@@ -1,7 +1,8 @@
 {
-  "name": "Gemini Nexus",
-  "description": "A high-performance interface for Gemini 2.5 Flash and the Real-time Live API, featuring multimodal chat and low-latency voice interaction.",
+  "name": "FaithStream - Social Platform",
+  "description": "A feature-rich social media platform with advanced post creation, rich text editing, and media capturing capabilities.",
   "requestFramePermissions": [
+    "camera",
     "microphone"
   ]
 }
