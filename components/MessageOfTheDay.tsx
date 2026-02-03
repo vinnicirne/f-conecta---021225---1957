@@ -3,6 +3,7 @@ import { getDailyMessage, refreshDailyMessage } from '../lib/dailyMessage';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
+import toast from 'react-hot-toast';
 
 interface DailyMessageData {
     title: string;
@@ -32,7 +33,26 @@ const MessageOfTheDay: React.FC = () => {
             const message = await getDailyMessage();
             if (message) {
                 setDailyMessage(message);
-                setLikes(Math.floor(Math.random() * 150) + 50);
+
+                // Buscar curtidas reais
+                const { count, error: countError } = await supabase
+                    .from('daily_message_likes')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('message_date', message.date);
+
+                if (!countError) setLikes(count || 0);
+
+                // Verificar se o usuário já curtiu
+                if (user) {
+                    const { data: userLike } = await supabase
+                        .from('daily_message_likes')
+                        .select('id')
+                        .eq('message_date', message.date)
+                        .eq('user_id', user.id)
+                        .maybeSingle();
+
+                    setHasLiked(!!userLike);
+                }
             }
         } catch (error) {
             console.error('Error fetching daily message:', error);
@@ -41,9 +61,40 @@ const MessageOfTheDay: React.FC = () => {
         }
     };
 
-    const handleLike = () => {
+    const handleLike = async () => {
+        if (!user || !dailyMessage) return;
+
+        const originalHasLiked = hasLiked;
+        const originalLikes = likes;
+
+        // Otimismo na UI
         setHasLiked(!hasLiked);
         setLikes(hasLiked ? likes - 1 : likes + 1);
+
+        try {
+            if (originalHasLiked) {
+                // Descurtir
+                await supabase
+                    .from('daily_message_likes')
+                    .delete()
+                    .eq('message_date', dailyMessage.date)
+                    .eq('user_id', user.id);
+            } else {
+                // Curtir
+                await supabase
+                    .from('daily_message_likes')
+                    .insert({
+                        message_date: dailyMessage.date,
+                        user_id: user.id
+                    });
+            }
+        } catch (error) {
+            console.error('Error toggling daily message like:', error);
+            // Reverter em caso de erro
+            setHasLiked(originalHasLiked);
+            setLikes(originalLikes);
+            toast.error('Erro ao processar curtida');
+        }
     };
 
     const handleShare = () => {
@@ -56,7 +107,7 @@ const MessageOfTheDay: React.FC = () => {
         } else if (dailyMessage) {
             const text = `${dailyMessage.title}\n\n${dailyMessage.message}`;
             navigator.clipboard.writeText(text);
-            alert('Mensagem copiada para a área de transferência!');
+            toast.success('Mensagem copiada!');
         }
     };
 
@@ -66,7 +117,8 @@ const MessageOfTheDay: React.FC = () => {
             const message = await refreshDailyMessage();
             if (message) {
                 setDailyMessage(message);
-                setLikes(Math.floor(Math.random() * 150) + 50);
+                // Resetar curtidas para a nova mensagem (nova data se mudar)
+                fetchDailyMessage();
             }
         } catch (error) {
             console.error('Error refreshing message:', error);

@@ -7,11 +7,14 @@ import RichTextEditor from './RichTextEditor';
 import MediaCapture from './MediaCapture';
 import AudioRecorder from './AudioRecorder';
 
+import { useAuth } from '../contexts/AuthContext';
+
 interface CreatePostProps {
   onPost: (post: Post) => void;
 }
 
 const CreatePost: React.FC<CreatePostProps> = ({ onPost }) => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<PostTab | null>(null);
   const [content, setContent] = useState('');
   const [styles, setStyles] = useState<PostStyles>({
@@ -45,8 +48,8 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost }) => {
 
     const newPost: Post = {
       id: Math.random().toString(36).substr(2, 9),
-      author: 'Você',
-      authorAvatar: 'https://picsum.photos/id/100/100/100',
+      author: user?.user_metadata?.full_name || user?.user_metadata?.username || 'Você',
+      authorAvatar: user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.user_metadata?.full_name || 'U')}&background=random`,
       content,
       type: mediaData?.type === 'audio' ? 'audio' : (mediaData ? 'media' : 'text'),
       mediaUrl: mediaData?.type !== 'audio' ? mediaData?.url : undefined,
@@ -56,6 +59,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost }) => {
       likes: 0,
       hasLiked: false,
       comments: [],
+      commentsCount: 0,
       createdAt: Date.now(),
       repostCount: 0
     };
@@ -104,9 +108,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ onPost }) => {
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300">
       <div className="p-4 flex items-start space-x-3">
         <img
-          src="https://picsum.photos/id/100/100/100"
+          src={user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.user_metadata?.full_name || 'U')}&background=random`}
           alt="Avatar"
-          className="w-10 h-10 rounded-full border border-gray-100"
+          className="w-10 h-10 rounded-full border border-gray-100 object-cover"
         />
         <div className="flex-1">
           {!activeTab ? (

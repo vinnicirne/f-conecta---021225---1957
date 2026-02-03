@@ -33,9 +33,12 @@ export const usePosts = () => {
             full_name,
             avatar_url
           ),
-          likes:likes(count),
-          comments_count
+          likes_count,
+          comments_count,
+          shares_count,
+          user_like:likes!left(id)
         `)
+                .eq('user_like.user_id', user.id)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -50,11 +53,12 @@ export const usePosts = () => {
                 mediaUrl: post.media_urls?.[0],
                 mediaType: post.media_urls?.[0]?.includes('video') ? 'video' : 'image',
                 likes: post.likes_count || 0,
-                hasLiked: false, // TODO: Check if current user liked
+                hasLiked: (post.user_like && post.user_like.length > 0) || false,
                 comments: [], // TODO: Fetch comments
                 commentsCount: post.comments_count || 0,
                 createdAt: new Date(post.created_at).getTime(),
-                repostCount: post.shares_count || 0
+                repostCount: post.shares_count || 0,
+                userId: post.user_id
             }));
 
             setPosts(transformedPosts);

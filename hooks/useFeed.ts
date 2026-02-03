@@ -48,10 +48,12 @@ export const useFeed = (): UseFeedReturn => {
             full_name,
             avatar_url
           ),
-          likes:likes(count),
-          user_likes:likes(user_id),
-          comments_count
+          comments_count,
+          likes_count,
+          shares_count,
+          user_like:likes!left(id)
         `)
+                .eq('user_like.user_id', user.id) // This filters the JOIN, not the posts
                 .order('created_at', { ascending: false })
                 .range(from, to);
 
@@ -72,7 +74,7 @@ export const useFeed = (): UseFeedReturn => {
                 audioUrl: post.audio_url,
                 styles: post.styles,
                 likes: post.likes_count || 0,
-                hasLiked: post.user_likes?.some((like: any) => like.user_id === user.id) || false,
+                hasLiked: (post.user_like && post.user_like.length > 0) || false,
                 comments: [],
                 commentsCount: post.comments_count || 0,
                 createdAt: new Date(post.created_at).getTime(),

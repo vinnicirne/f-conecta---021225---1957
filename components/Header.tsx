@@ -14,29 +14,63 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ onRefresh, onNavigateToSearch, onNavigateToProfile, onNavigateToHashtag }) => {
   const { user, signOut } = useAuth();
   const [showMenu, setShowMenu] = useState(false);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   return (
     <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-gray-100 z-50">
       <div className="max-w-2xl mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
+        <div className={`flex items-center space-x-2 transition-all duration-300 ${showMobileSearch ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
             F
           </div>
-          <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+          <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 truncate">
             FéConecta
           </h1>
         </div>
 
         {/* SearchBar */}
-        <div className="flex-1 max-w-md mx-4 hidden md:block">
-          <SearchBar
-            onNavigateToSearch={onNavigateToSearch}
-            onNavigateToProfile={onNavigateToProfile}
-            onNavigateToHashtag={onNavigateToHashtag}
-          />
+        <div className={`flex-1 transition-all duration-300 ${showMobileSearch ? 'mx-0' : 'mx-4 hidden md:block'}`}>
+          {(showMobileSearch || window.innerWidth >= 768) && (
+            <div className="flex items-center gap-2">
+              <SearchBar
+                onNavigateToSearch={(q) => {
+                  onNavigateToSearch(q);
+                  setShowMobileSearch(false);
+                }}
+                onNavigateToProfile={(id) => {
+                  onNavigateToProfile(id);
+                  setShowMobileSearch(false);
+                }}
+                onNavigateToHashtag={(h) => {
+                  onNavigateToHashtag(h);
+                  setShowMobileSearch(false);
+                }}
+              />
+              {showMobileSearch && (
+                <button
+                  onClick={() => setShowMobileSearch(false)}
+                  className="p-2 text-gray-400 hover:text-gray-600 md:hidden"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className={`flex items-center gap-2 transition-all duration-300 ${showMobileSearch ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
+          <button
+            onClick={() => setShowMobileSearch(true)}
+            className="md:hidden p-2 hover:bg-gray-100 rounded-full transition-colors"
+            title="Buscar"
+          >
+            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
+
           <button
             onClick={onRefresh}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"

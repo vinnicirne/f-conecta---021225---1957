@@ -1,9 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { useFeed } from '../hooks/useFeed';
-import PostCard from './PostCard';
-import LoadingSpinner from './LoadingSpinner';
-import { usePosts } from '../hooks/usePosts';
-import { useRepost } from '../hooks/useRepost';
+import SkeletonFeed from './SkeletonFeed';
 
 const Feed: React.FC = () => {
     const { posts, loading, hasMore, loadMore, refreshFeed } = useFeed();
@@ -39,11 +36,7 @@ const Feed: React.FC = () => {
     };
 
     if (loading && posts.length === 0) {
-        return (
-            <div className="flex justify-center py-12">
-                <LoadingSpinner size="lg" />
-            </div>
-        );
+        return <SkeletonFeed count={3} />;
     }
 
     if (posts.length === 0) {
